@@ -1,5 +1,4 @@
 import pygame
-import time
 import random
 
 WHITE = (255, 255, 255)
@@ -24,24 +23,24 @@ class SnakeGame:
         pygame.init()
         self.gameLoop()
 
-    def Your_score(self, dis, score):
-        score_font = pygame.font.SysFont("comicsansms", 35)
+    def display_score(self, dis, score):
+        score_font = pygame.font.SysFont("ornanong", 35)
         value = score_font.render("Your Score: " + str(score), True, YELLOW)
-        dis.blit(value, [0, 0])
+        dis.blit(value, [DIS_WIDTH / 3, 0])
 
-    def our_snake(self, dis, snake_list):
+    def display_message(self, dis, msg, color):
+        font_style = pygame.font.SysFont("optima", 25)
+        mesg = font_style.render(msg, True, color)
+        dis.blit(mesg, [DIS_WIDTH / 3, DIS_HEIGHT / 3])
+
+    def plot_snake(self, dis, snake_list):
         for x in snake_list:
             pygame.draw.rect(dis, BLACK, [x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
 
-    def message(self, dis, msg, color):
-        font_style = pygame.font.SysFont("bahnschrift", 25)
-        mesg = font_style.render(msg, True, color)
-        dis.blit(mesg, [DIS_WIDTH / 6, DIS_HEIGHT / 3])
-
     def gameLoop(self):
         pygame.display.set_caption('Snake Game')
-        clock = pygame.time.Clock()
         dis = pygame.display.set_mode((DIS_WIDTH, DIS_HEIGHT))
+        clock = pygame.time.Clock()
 
         game_over = False
         game_close = False
@@ -62,8 +61,8 @@ class SnakeGame:
 
             while game_close == True:
                 dis.fill(BLUE)
-                self.message(dis, "You Lost! Press C-Play Again or Q-Quit", RED)
-                self.Your_score(dis, Length_of_snake - 1)
+                self.display_message(dis, "DEAD! Press C:Play Again / Q:Quit", RED)
+                self.display_score(dis, Length_of_snake - 1)
                 pygame.display.update()
 
                 for event in pygame.event.get():
@@ -91,8 +90,10 @@ class SnakeGame:
                         y1_change = SNAKE_BLOCK
                         x1_change = 0
 
+            # End Flag: Snake goes outside of map
             if x1 >= DIS_WIDTH or x1 < 0 or y1 >= DIS_HEIGHT or y1 < 0:
                 game_close = True
+
             x1 += x1_change
             y1 += y1_change
             dis.fill(BLUE)
@@ -104,15 +105,17 @@ class SnakeGame:
             if len(snake_List) > Length_of_snake:
                 del snake_List[0]
 
+            # End Flag: Snake eats his body
             for x in snake_List[:-1]:
                 if x == snake_Head:
                     game_close = True
 
-            self.our_snake(dis, snake_List)
-            self.Your_score(dis, Length_of_snake - 1)
+            self.plot_snake(dis, snake_List)
+            self.display_score(dis, Length_of_snake - 1)
 
             pygame.display.update()
 
+            # Generate new food
             if x1 == foodx and y1 == foody:
                 foodx = round(random.randrange(0, DIS_WIDTH - SNAKE_BLOCK) / 10.0) * 10.0
                 foody = round(random.randrange(0, DIS_HEIGHT - SNAKE_BLOCK) / 10.0) * 10.0
