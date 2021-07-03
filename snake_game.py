@@ -18,6 +18,16 @@ SNAKE_SPEED = 15
 class SnakeGame:
     def __init__(self):
         self.score = 0
+        self.auto = False
+        self.snake_observe = []
+
+    def generate_action(self):
+        # 0 - up
+        # 1 - right
+        # 2 - down
+        # 3 - left
+        key = random.randint(0, 3)
+        return key
 
     def start(self):
         pygame.init()
@@ -35,7 +45,7 @@ class SnakeGame:
 
     def plot_snake(self, dis, snake_list):
         for x in snake_list:
-            pygame.draw.rect(dis, BLACK, [x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
+            pygame.draw.rect(dis, WHITE, [x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
 
     def gameLoop(self):
         pygame.display.set_caption('Snake Game')
@@ -60,8 +70,8 @@ class SnakeGame:
         while not game_over:
 
             while game_close == True:
-                dis.fill(BLUE)
-                self.display_message(dis, "DEAD! Press C:Play Again / Q:Quit", RED)
+                dis.fill(BLACK)
+                self.display_message(dis, "DEAD! Press C:Play Again / Q:Quit", YELLOW)
                 self.display_score(dis, Length_of_snake - 1)
                 pygame.display.update()
 
@@ -73,22 +83,39 @@ class SnakeGame:
                         if event.key == pygame.K_c:
                             self.gameLoop()
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    game_over = True
+            event = pygame.event.poll()
+            if event.type == pygame.QUIT:
+                game_over = True
+
+            if self.auto == True:
+                key = self.generate_action()
+                if key == 0:
+                    y1_change = -SNAKE_BLOCK
+                    x1_change = 0
+                elif key == 1:
+                    x1_change = SNAKE_BLOCK
+                    y1_change = 0
+                elif key == 2:
+                    y1_change = SNAKE_BLOCK
+                    x1_change = 0
+                elif key == 3:
+                    x1_change = -SNAKE_BLOCK
+                    y1_change = 0
+
+            if self.auto == False:
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_LEFT:
-                        x1_change = -SNAKE_BLOCK
-                        y1_change = 0
+                    if event.key == pygame.K_UP:
+                        y1_change = -SNAKE_BLOCK
+                        x1_change = 0
                     elif event.key == pygame.K_RIGHT:
                         x1_change = SNAKE_BLOCK
                         y1_change = 0
-                    elif event.key == pygame.K_UP:
-                        y1_change = -SNAKE_BLOCK
-                        x1_change = 0
                     elif event.key == pygame.K_DOWN:
                         y1_change = SNAKE_BLOCK
                         x1_change = 0
+                    elif event.key == pygame.K_LEFT:
+                        x1_change = -SNAKE_BLOCK
+                        y1_change = 0
 
             # End Flag: Snake goes outside of map
             if x1 >= DIS_WIDTH or x1 < 0 or y1 >= DIS_HEIGHT or y1 < 0:
@@ -96,7 +123,7 @@ class SnakeGame:
 
             x1 += x1_change
             y1 += y1_change
-            dis.fill(BLUE)
+            dis.fill(BLACK)
             pygame.draw.rect(dis, GREEN, [foodx, foody, SNAKE_BLOCK, SNAKE_BLOCK])
             snake_Head = []
             snake_Head.append(x1)
@@ -128,5 +155,6 @@ class SnakeGame:
 
 
 if __name__ == "__main__":
-    game = SnakeGame();
+    game = SnakeGame()
+    game.auto = False
     game.start()
