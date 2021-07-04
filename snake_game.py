@@ -74,6 +74,7 @@ class SnakeGame:
                 dis.fill(BLACK)
                 self.display_message(dis, "DEAD! Press C:Play Again / Q:Quit", YELLOW)
                 self.display_score(dis, Length_of_snake - 1)
+                self.score = Length_of_snake - 1
                 pygame.display.update()
 
                 if not self.auto:
