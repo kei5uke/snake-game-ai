@@ -20,14 +20,15 @@ class SnakeGame:
         self.score = 0
         self.auto = False
         self.snake_observe = []
+        self.loop = 0
 
     def generate_action(self):
         # 0 - up
         # 1 - right
         # 2 - down
         # 3 - left
-        key = random.randint(0, 3)
-        return key
+        # key = random.randint(0, 3)
+        return 1
 
     def start(self):
         pygame.init()
@@ -75,7 +76,8 @@ class SnakeGame:
                 self.display_score(dis, Length_of_snake - 1)
                 pygame.display.update()
 
-                for event in pygame.event.get():
+                if not self.auto:
+                    event = pygame.event.poll()
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_q:
                             game_over = True
@@ -83,11 +85,19 @@ class SnakeGame:
                         if event.key == pygame.K_c:
                             self.gameLoop()
 
+                if self.auto:
+                    if self.loop == 0:
+                        game_over = True
+                        game_close = False
+                    if self.loop > 0:
+                        self.loop -= 1
+                        self.gameLoop()
+
             event = pygame.event.poll()
             if event.type == pygame.QUIT:
                 game_over = True
 
-            if self.auto == True:
+            if self.auto:
                 key = self.generate_action()
                 if key == 0:
                     y1_change = -SNAKE_BLOCK
@@ -102,7 +112,7 @@ class SnakeGame:
                     x1_change = -SNAKE_BLOCK
                     y1_change = 0
 
-            if self.auto == False:
+            if not self.auto:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_UP:
                         y1_change = -SNAKE_BLOCK
@@ -156,5 +166,6 @@ class SnakeGame:
 
 if __name__ == "__main__":
     game = SnakeGame()
-    game.auto = False
+    game.auto = True
+    game.loop = 2
     game.start()
