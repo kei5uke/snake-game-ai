@@ -1,5 +1,6 @@
 import pygame
 import random
+import numpy as np
 
 WHITE = (255, 255, 255)
 YELLOW = (255, 255, 102)
@@ -13,28 +14,53 @@ SNAKE_SPEED = 15
 
 
 class SnakeGame:
-    def __init__(self):
-        self.dis_width = 600
-        self.dis_height = 400
+    def __init__(self, width=600, height=400, auto=False, loop=0, step=0):
+        self.dis_width = width
+        self.dis_height = height
         self.display = pygame.display.set_mode((self.dis_width, self.dis_height))
         self.score = 0
-        self.auto = False
+        self.auto = auto
         self.snake_observe = []
-        self.loop = 0
+        self.loop = loop
+        self.step = step
+
+    def start(self):
+        pygame.init()
+        pygame.display.set_caption('Snake Game')
+
+        if not self.auto:
+            print('MANUAL GAME')
+            self.gameLoop()
+
+        if self.auto:
+            for i in range(0, self.loop):
+                print('AUTO GAME {0}'.format(i + 1))
+                self.gameLoop()
+        print('FINISHED')
 
     def generate_action(self):
         # 0 - up
         # 1 - right
         # 2 - down
         # 3 - left
-        # key = random.randint(0, 3)
-        return 1
+        key = random.randint(0, 3)
+        return key
 
-    def start(self):
-        pygame.init()
-        pygame.display.set_caption('Snake Game')
-        self.gameLoop()
-        return
+    def get_key_action(self, event):
+        key = None
+        if self.auto:
+            key = self.generate_action()
+        elif not self.auto:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    key = 0
+                elif event.key == pygame.K_RIGHT:
+                    key = 1
+                elif event.key == pygame.K_DOWN:
+                    key = 2
+                elif event.key == pygame.K_LEFT:
+                    key = 3
+        return key
 
     def display_message(self, mode, text):
         if mode == 'msg':
@@ -63,21 +89,46 @@ class SnakeGame:
         foody = round(random.randrange(0, self.dis_height - SNAKE_BLOCK) / 10.0) * 10.0
         return foodx, foody
 
+    def is_direction_blocked(self, x, y, snake_List):
+        blocked_up, blocked_right, blocked_down, blocked_left = False, False, False, False
+        if y - 10 == -10:
+            blocked_up = True
+        if x + 10 == self.dis_width:
+            blocked_right = True
+        if y + 10 == self.dis_height:
+            blocked_down = True
+        if x - 10 == -10:
+            blocked_left = True
+        for snake in snake_List[:-1]:
+            if snake == [x, y - 10]:
+                blocked_up = True
+            if snake == [x + 10, y]:
+                blocked_right = True
+            if snake == [x, y + 10]:
+                blocked_down = True
+            if snake == [x - 10, y]:
+                blocked_left = True
+
+        return np.array([int(blocked_up), int(blocked_right), int(blocked_down), int(blocked_left)])
+
     def gameLoop(self):
         clock = pygame.time.Clock()
-
         game_over, game_close = False, False
-
         x1, y1 = self.generate_snake()
         x1_change, y1_change = 0, 0
-
         foodx, foody = self.generate_food()
-
         snake_List = []
         Length_of_snake = 1
+        key = None
+        action = None
+        step = self.step
+
+        blocked = self.is_direction_blocked(x1, y1, [[x1, y1]])
 
         while not game_over:
+            if step == 0: return
             while game_close:
+                if self.auto: return
                 # Game Close Menu
                 self.display.fill(BLACK)
                 self.display_message('msg', "DEAD! Press C:Play Again / Q:Quit")
@@ -85,61 +136,36 @@ class SnakeGame:
                 self.score = Length_of_snake - 1
                 pygame.display.update()
 
-                if not self.auto:
-                    event = pygame.event.poll()
+                for event in pygame.event.get():
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_q:
-                            game_over = True
-                            game_close = False
-                        if event.key == pygame.K_c:
+                            return
+                        elif event.key == pygame.K_c:
                             self.gameLoop()
+                            return
 
-                if self.auto:
-                    self.loop -= 1
-                    if self.loop == 0:
-                        game_over = True
-                        game_close = False
-                    if self.loop > 0:
-                        self.gameLoop()
-
-            # Get Key / Button Event
             event = pygame.event.poll()
+            # Quit Button Event
             if event.type == pygame.QUIT:
                 game_over = True
-
-            if not self.auto:
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
-                        y1_change = -SNAKE_BLOCK
-                        x1_change = 0
-                    elif event.key == pygame.K_RIGHT:
-                        x1_change = SNAKE_BLOCK
-                        y1_change = 0
-                    elif event.key == pygame.K_DOWN:
-                        y1_change = SNAKE_BLOCK
-                        x1_change = 0
-                    elif event.key == pygame.K_LEFT:
-                        x1_change = -SNAKE_BLOCK
-                        y1_change = 0
-
-            if self.auto:
-                key = self.generate_action()
-                if key == 0:
-                    y1_change = -SNAKE_BLOCK
-                    x1_change = 0
-                elif key == 1:
-                    x1_change = SNAKE_BLOCK
-                    y1_change = 0
-                elif key == 2:
-                    y1_change = SNAKE_BLOCK
-                    x1_change = 0
-                elif key == 3:
-                    x1_change = -SNAKE_BLOCK
-                    y1_change = 0
-
-            # End Flag: Snake goes outside of map
-            if x1 >= self.dis_width or x1 < 0 or y1 >= self.dis_height or y1 < 0:
-                game_close = True
+            # Key Action Event
+            key = self.get_key_action(event)
+            if key == 0:  # up
+                action = np.array([1, 0, 0, 0])
+                y1_change = -SNAKE_BLOCK
+                x1_change = 0
+            elif key == 1:  # right
+                action = np.array([0, 1, 0, 0])
+                x1_change = SNAKE_BLOCK
+                y1_change = 0
+            elif key == 2:  # down
+                action = np.array([0, 0, 1, 0])
+                y1_change = SNAKE_BLOCK
+                x1_change = 0
+            elif key == 3:  # left
+                action = np.array([0, 0, 0, 1])
+                x1_change = -SNAKE_BLOCK
+                y1_change = 0
 
             self.display.fill(BLACK)
 
@@ -154,29 +180,47 @@ class SnakeGame:
             if len(snake_List) > Length_of_snake:
                 del snake_List[0]
 
+            # End Flag: Snake goes outside of map
+            if x1 >= self.dis_width or x1 < 0 or y1 >= self.dis_height or y1 < 0:
+                game_close = True
+
             # End Flag: Snake eats his body
             for x in snake_List[:-1]:
                 if x == snake_Head:
                     game_close = True
 
-            self.plot_snake(snake_List)  # Plot Snake
-            self.plot_food(foodx, foody)  # Plot Food
-            self.display_message('score', Length_of_snake - 1)
-
-            pygame.display.update()
-
-            # Flag: Snake ate food
+            # Action Flag: Snake ate food
             if x1 == foodx and y1 == foody:
                 foodx, foody = self.generate_food()  # Generate new food
                 Length_of_snake += 1
 
+            self.plot_snake(snake_List)  # Plot Snake
+            self.plot_food(foodx, foody)  # Plot Food
+            self.display_message('score', Length_of_snake - 1)
+
+            if x1_change != 0 or y1_change != 0:
+                # blocked : Blocked direction
+                # action : Suggested action based on the blocked direction
+                if game_close:
+                    self.snake_observe.append([blocked, action, 1])
+                    print([blocked, action, 1])
+                elif not game_close:
+                    self.snake_observe.append([blocked, action, 0])
+                    print([blocked, action, 0])
+
+                blocked = self.is_direction_blocked(x1, y1, snake_List)
+                step -= 1
+
             clock.tick(SNAKE_SPEED)
-        pygame.quit()
-        quit()
+            pygame.display.update()
 
 
 if __name__ == "__main__":
-    game = SnakeGame()
-    game.auto = True
-    game.loop = 2
+    game = SnakeGame(auto=True, loop=2, step=10)
     game.start()
+    print(game.score)
+    print(game.snake_observe)
+    print(game.step)
+    print('blocked action')
+    print(game.snake_observe)
+    print(len(game.snake_observe))
