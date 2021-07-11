@@ -13,7 +13,7 @@ SNAKE_BLOCK = 10
 SNAKE_SPEED = 15
 
 
-class SnakeGame:
+class snake_game:
     def __init__(self, width=600, height=400, auto=False, loop=0, step=0):
         self.dis_width = width
         self.dis_height = height
@@ -216,7 +216,7 @@ class SnakeGame:
 
 
 if __name__ == "__main__":
-    game = SnakeGame(auto=True, loop=2, step=10)
+    game = snake_game(auto=True, loop=2, step=10)
     game.start()
     print(game.score)
     print(game.snake_observe)
