@@ -202,10 +202,10 @@ class snake_game:
                 # blocked : Blocked direction
                 # action : Suggested action based on the blocked direction
                 if game_close:
-                    self.snake_observe.append([blocked, action, 1])
+                    self.snake_observe.append([np.append(blocked, action), 1])
                     print([blocked, action, 1])
                 elif not game_close:
-                    self.snake_observe.append([blocked, action, 0])
+                    self.snake_observe.append([np.append(blocked, action), 0])
                     print([blocked, action, 0])
 
                 blocked = self.is_direction_blocked(x1, y1, snake_List)
