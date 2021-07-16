@@ -2,6 +2,11 @@ import pygame
 import random
 import numpy as np
 
+try:
+    from tensorflow import keras as keras
+except ImportError:
+    pass
+
 WHITE = (255, 255, 255)
 YELLOW = (255, 255, 102)
 BLACK = (0, 0, 0)
@@ -14,43 +19,44 @@ SNAKE_SPEED = 15
 
 
 class snake_game:
-    def __init__(self, width=600, height=400, auto=False, loop=0, step=0):
+    def __init__(self, width=600, height=400, random=False, auto=False, manual=False, loop=1, step=-1, model_file=None):
         self.dis_width = width
         self.dis_height = height
         self.display = pygame.display.set_mode((self.dis_width, self.dis_height))
         self.score = 0
+        self.random = random
         self.auto = auto
+        self.manual = manual
         self.snake_observe = []
         self.loop = loop
         self.step = step
+
+        if model_file != None:
+            self.model = keras.models.load_model(model_file)
 
     def start(self):
         pygame.init()
         pygame.display.set_caption('Snake Game')
 
-        if not self.auto:
+        if self.manual:
             print('MANUAL GAME')
             self.gameLoop()
 
-        if self.auto:
+        elif self.random:
+            for i in range(0, self.loop):
+                print('RANDOM GAME {0}'.format(i + 1))
+                self.gameLoop()
+
+        elif self.auto:
             for i in range(0, self.loop):
                 print('AUTO GAME {0}'.format(i + 1))
                 self.gameLoop()
+
         print('FINISHED')
 
-    def generate_action(self):
-        # 0 - up
-        # 1 - right
-        # 2 - down
-        # 3 - left
-        key = random.randint(0, 3)
-        return key
-
-    def get_key_action(self, event):
+    def get_key_action(self, event, blocked):
         key = None
-        if self.auto:
-            key = self.generate_action()
-        elif not self.auto:
+        if self.manual:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     key = 0
@@ -60,6 +66,21 @@ class snake_game:
                     key = 2
                 elif event.key == pygame.K_LEFT:
                     key = 3
+
+        elif self.random:
+            key = random.randint(0, 3)
+
+        elif self.auto:
+            key = 0
+            prediction = []
+            for i in range(0, 3):
+                action = np.zeros(4)
+                action[i] = 1
+                para = np.append(blocked, action)
+                prediction.append(self.model.predict(para.reshape(-1, 8)))
+            key = np.argmax(prediction)
+            print(key)
+
         return key
 
     def display_message(self, mode, text):
@@ -128,7 +149,7 @@ class snake_game:
         while not game_over:
             if step == 0: return
             while game_close:
-                if self.auto: return
+                if self.random or self.auto: return
                 # Game Close Menu
                 self.display.fill(BLACK)
                 self.display_message('msg', "DEAD! Press C:Play Again / Q:Quit")
@@ -149,7 +170,7 @@ class snake_game:
             if event.type == pygame.QUIT:
                 game_over = True
             # Key Action Event
-            key = self.get_key_action(event)
+            key = self.get_key_action(event, blocked)
             if key == 0:  # up
                 action = np.array([1, 0, 0, 0])
                 y1_change = -SNAKE_BLOCK
@@ -202,21 +223,23 @@ class snake_game:
                 # blocked : Blocked direction
                 # action : Suggested action based on the blocked direction
                 if game_close:
-                    self.snake_observe.append([np.append(blocked, action), 1])
-                    print([blocked, action, 1])
-                elif not game_close:
                     self.snake_observe.append([np.append(blocked, action), 0])
-                    print([blocked, action, 0])
+                    print([np.append(blocked, action), 0])
+                elif not game_close:
+                    self.snake_observe.append([np.append(blocked, action), 1])
+                    print([np.append(blocked, action), 1])
 
                 blocked = self.is_direction_blocked(x1, y1, snake_List)
-                step -= 1
+
+                if step > -1:
+                    step -= 1
 
             clock.tick(SNAKE_SPEED)
             pygame.display.update()
 
 
 if __name__ == "__main__":
-    game = snake_game(auto=True, loop=2, step=10)
+    game = snake_game(random=True)
     game.start()
     print(game.score)
     print(game.snake_observe)
