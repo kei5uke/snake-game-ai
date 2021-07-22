@@ -1,7 +1,7 @@
 # snake-game-ai
 I created snake game and trained neural network to beat the game because why not :P 
 ## pygame
-I used pygame library for creating the base snake game. Snake at the start and apple(food) at each moment will be placed on the map. 
+I used pygame library for creating the base snake game. Snake at the start and apple(food) at each moment will be placed on the map randomly. 
 ## Neural Network
 To make snake smart, we need to give knowledge to it. Considering the main tasks of the game are survive and earn score, the snake should know which direction is safe and close to the food. 
 Soo I decide to give these features below for the neural network.
