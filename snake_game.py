@@ -1,9 +1,11 @@
 import pygame
 import random
+import math
+import sys
 import numpy as np
 
 try:
-    from tensorflow import keras as keras
+    from tensorflow import keras
 except ImportError:
     pass
 
@@ -15,11 +17,14 @@ GREEN = (0, 255, 0)
 BLUE = (50, 153, 213)
 
 SNAKE_BLOCK = 10
-SNAKE_SPEED = 15
+SNAKE_SPEED = 30
 
+from logging import basicConfig, getLogger, DEBUG
+logger = getLogger(__name__)
+logger.setLevel(DEBUG)
 
 class snake_game:
-    def __init__(self, width=600, height=400, random=False, auto=False, manual=False, loop=1, step=-1, model_file=None):
+    def __init__(self, width=600, height=400, random=False, auto=False, manual=False, loop=1, step=None, model_file=None):
         self.dis_width = width
         self.dis_height = height
         self.display = pygame.display.set_mode((self.dis_width, self.dis_height))
@@ -39,49 +44,20 @@ class snake_game:
         pygame.display.set_caption('Snake Game')
 
         if self.manual:
-            print('MANUAL GAME')
+            logger.info('MANUAL GAME')
             self.gameLoop()
 
         elif self.random:
             for i in range(0, self.loop):
-                print('RANDOM GAME {0}'.format(i + 1))
+                logger.info('RANDOM GAME {0}'.format(i + 1))
                 self.gameLoop()
 
         elif self.auto:
             for i in range(0, self.loop):
-                print('AUTO GAME {0}'.format(i + 1))
+                logger.info('AUTO GAME {0}'.format(i + 1))
                 self.gameLoop()
 
-        print('FINISHED')
-
-    def get_key_action(self, event, blocked):
-        key = None
-        if self.manual:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    key = 0
-                elif event.key == pygame.K_RIGHT:
-                    key = 1
-                elif event.key == pygame.K_DOWN:
-                    key = 2
-                elif event.key == pygame.K_LEFT:
-                    key = 3
-
-        elif self.random:
-            key = random.randint(0, 3)
-
-        elif self.auto:
-            key = 0
-            prediction = []
-            for i in range(0, 3):
-                action = np.zeros(4)
-                action[i] = 1
-                para = np.append(blocked, action)
-                prediction.append(self.model.predict(para.reshape(-1, 8)))
-            key = np.argmax(prediction)
-            print(key)
-
-        return key
+        logger.info('FINISHED')
 
     def display_message(self, mode, text):
         if mode == 'msg':
@@ -96,9 +72,11 @@ class snake_game:
     def plot_snake(self, snake_list):
         for x in snake_list:
             pygame.draw.rect(self.display, WHITE, [x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
+            logger.debug('SNAKE:{0} {1}'.format(x[0], x[1]))
 
     def plot_food(self, foodx, foody):
         pygame.draw.rect(self.display, GREEN, [foodx, foody, SNAKE_BLOCK, SNAKE_BLOCK])
+        logger.debug('FOOD:{0} {1}'.format(foodx, foody))
 
     def generate_snake(self):
         x = round(random.randrange(0, self.dis_width - SNAKE_BLOCK) / 10.0) * 10.0
@@ -109,6 +87,23 @@ class snake_game:
         foodx = round(random.randrange(0, self.dis_width - SNAKE_BLOCK) / 10.0) * 10.0
         foody = round(random.randrange(0, self.dis_height - SNAKE_BLOCK) / 10.0) * 10.0
         return foodx, foody
+
+    def get_action_array(self, key):
+        action = np.zeros(4)
+        action[key] = 1
+        return action
+
+    def normalize_vector(self, vec):
+        return vec / np.linalg.norm(vec)
+
+    def get_angle(self, x1, y1, x1_change, y1_change, foodx, foody):
+        snake_dir = self.normalize_vector([x1_change, y1_change])
+        food_dir = self.normalize_vector([(foodx - x1), (foody - y1)])
+        angle = math.atan2(snake_dir[0] * food_dir[1] - snake_dir[1] * food_dir[0], snake_dir[0] * food_dir[0] + snake_dir[1] * food_dir[1])
+        return angle/math.pi
+
+    def get_distance_of(self, x1, y1, foodx, foody):
+        return np.linalg.norm(np.array([(foodx - x1), (foody - y1)]))
 
     def is_direction_blocked(self, x, y, snake_List):
         blocked_up, blocked_right, blocked_down, blocked_left = False, False, False, False
@@ -132,6 +127,55 @@ class snake_game:
 
         return np.array([int(blocked_up), int(blocked_right), int(blocked_down), int(blocked_left)])
 
+    def get_key_direction(self, key):
+        x1_change, y1_change = 0, 0
+        if key == 0:  # up
+            y1_change = -SNAKE_BLOCK
+            x1_change = 0
+        elif key == 1:  # right
+            x1_change = SNAKE_BLOCK
+            y1_change = 0
+        elif key == 2:  # down
+            y1_change = SNAKE_BLOCK
+            x1_change = 0
+        elif key == 3:  # left
+            x1_change = -SNAKE_BLOCK
+            y1_change = 0
+        else:
+            sys.exit("key error: {0}".format(key))
+
+        return x1_change, y1_change
+
+    def get_key_action(self, event, x1, y1, foodx, foody, blocked):
+        key = None
+        if self.manual:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    key = 0
+                elif event.key == pygame.K_RIGHT:
+                    key = 1
+                elif event.key == pygame.K_DOWN:
+                    key = 2
+                elif event.key == pygame.K_LEFT:
+                    key = 3
+
+        elif self.random:
+            key = random.randint(0, 3)
+
+        elif self.auto:
+            key = 0
+            prediction = []
+            for i in range(0, 4):
+                action = self.get_action_array(i)
+                x1_change, y1_change = self.get_key_direction(i)
+                angle = self.get_angle(x1, y1, x1_change, y1_change, foodx, foody)
+                prediction.append(self.model.predict(np.hstack((blocked, action, angle)).ravel().reshape(-1, 9)))
+            key = np.argmax(prediction)
+            logger.debug('PREDICTION: {0}'.format(prediction))
+            logger.debug('KEY: {0}'.format(key))
+
+        return key
+
     def gameLoop(self):
         clock = pygame.time.Clock()
         game_over, game_close = False, False
@@ -144,7 +188,10 @@ class snake_game:
         action = None
         step = self.step
 
+        # Find blocked direction
         blocked = self.is_direction_blocked(x1, y1, [[x1, y1]])
+        # Distance of food and snake
+        distance = self.get_distance_of(x1, y1, foodx, foody)
 
         while not game_over:
             if step == 0: return
@@ -170,30 +217,16 @@ class snake_game:
             if event.type == pygame.QUIT:
                 game_over = True
             # Key Action Event
-            key = self.get_key_action(event, blocked)
-            if key == 0:  # up
-                action = np.array([1, 0, 0, 0])
-                y1_change = -SNAKE_BLOCK
-                x1_change = 0
-            elif key == 1:  # right
-                action = np.array([0, 1, 0, 0])
-                x1_change = SNAKE_BLOCK
-                y1_change = 0
-            elif key == 2:  # down
-                action = np.array([0, 0, 1, 0])
-                y1_change = SNAKE_BLOCK
-                x1_change = 0
-            elif key == 3:  # left
-                action = np.array([0, 0, 0, 1])
-                x1_change = -SNAKE_BLOCK
-                y1_change = 0
+            key = self.get_key_action(event, x1, y1, foodx, foody, blocked)
+            x1_change, y1_change = self.get_key_direction(key)
+            action = self.get_action_array(key)
+            angle = self.get_angle(x1, y1, x1_change, y1_change, foodx, foody)
 
             self.display.fill(BLACK)
 
+            # Update Snake
             x1 += x1_change
             y1 += y1_change
-
-            # Update Snake
             snake_Head = []
             snake_Head.append(x1)
             snake_Head.append(y1)
@@ -222,16 +255,26 @@ class snake_game:
             if x1_change != 0 or y1_change != 0:
                 # blocked : Blocked direction
                 # action : Suggested action based on the blocked direction
+                # angle : angle of food and snake (-1 ~ 1)
+                new_distance = self.get_distance_of(x1, y1, foodx, foody)
+
                 if game_close:
-                    self.snake_observe.append([np.append(blocked, action), 0])
-                    print([np.append(blocked, action), 0])
+                    self.snake_observe.append([np.hstack((blocked, action, angle)).ravel(), -1])
+                    logger.debug('BLOCKED:{0} ACTION:{1} DEGREE:{2} LABEL:{3}'.format(blocked, action, math.degrees(angle*math.pi), -1))
                 elif not game_close:
-                    self.snake_observe.append([np.append(blocked, action), 1])
-                    print([np.append(blocked, action), 1])
+                    if distance <= new_distance:
+                        self.snake_observe.append([np.hstack((blocked, action, angle)).ravel(), 0])
+                        logger.debug('BLOCKED:{0} ACTION:{1} DEGREE:{2} LABEL:{3}'.format(blocked, action, math.degrees(angle*math.pi), 0))
+                    if distance > new_distance or self.score < Length_of_snake-1 :
+                        self.snake_observe.append([np.hstack((blocked, action, angle)).ravel(), 1])
+                        logger.debug('BLOCKED:{0} ACTION:{1} DEGREE:{2} LABEL:{3}'.format(blocked, action, math.degrees(angle*math.pi), 1))
 
+                # Update blocked direction, distance and score
                 blocked = self.is_direction_blocked(x1, y1, snake_List)
+                distance = new_distance
+                self.score = Length_of_snake - 1
 
-                if step > -1:
+                if step != None:
                     step -= 1
 
             clock.tick(SNAKE_SPEED)
@@ -239,11 +282,12 @@ class snake_game:
 
 
 if __name__ == "__main__":
+    basicConfig(
+        format='[%(asctime)s] %(name)s %(levelname)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+
     game = snake_game(random=True)
     game.start()
-    print(game.score)
-    print(game.snake_observe)
-    print(game.step)
-    print('blocked action')
-    print(game.snake_observe)
-    print(len(game.snake_observe))
+    logger.debug(game.score)
+    logger.debug(game.snake_observe)
