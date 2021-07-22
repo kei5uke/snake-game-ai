@@ -11,16 +11,21 @@ logger = getLogger(__name__)
 logger.setLevel(DEBUG)
 
 class snake_nn:
-    def __init__(self):
+    def __init__(self, filename='./model/snake_nn_model.h5'):
         self.model = None
-        self.filename = './model/snake_nn_model.h5'
+        self.filename = filename
 
     def train(self, data):
-        X, y = self.build_train_data(data)
+        ''' Start process of training
+        1. Create training data
+        2. Build_model
+        3. Train nn model '''
+        X, y = self.create_train_data(data)
         self.build_model()
         self.train_model(X, y)
 
-    def build_train_data(self, data):
+    def create_train_data(self, data):
+        ''' Divide data into x and y '''
         X = np.array([i[0] for i in data]).reshape([-1, 9])
         y = np.array([i[1] for i in data]).reshape([-1, 1])
         logger.debug(X.shape)
@@ -28,6 +33,7 @@ class snake_nn:
         return X, y
 
     def build_model(self):
+        ''' Build model '''
         model = Sequential()
         model.add(Dense(10, activation='relu', input_dim=9))
         model.add(Dense(10, activation='relu'))
@@ -39,6 +45,7 @@ class snake_nn:
         self.model = model
 
     def train_model(self, X, y):
+        ''' Train model '''
         self.model.fit(X,
                   y,
                   epochs = 16,
@@ -51,13 +58,10 @@ if __name__ == "__main__":
         format='[%(asctime)s] %(name)s %(levelname)s: %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
-
-    logger.info('Start snake_nn.py')
-    game = snake_game(auto=True, loop=500, step=100, model_file='./model/snake_nn_model.h5', width=100, height=100)
+    game = snake_game(mode='auto', loop=100, step=10, model_file='./model/survive_and_apple/snake_nn_model_angle.h5', width=100, height=100)
     game.start()
     snake_nn = snake_nn()
     snake_nn.train(game.snake_observe)
-    logger.info('Finish snake_nn.py')
 
-    new_game = snake_game(auto=True, model_file='./model/snake_nn_model.h5')
+    new_game = snake_game(mode='auto', model_file='./model/snake_nn_model.h5')
     new_game.start()
