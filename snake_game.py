@@ -238,7 +238,7 @@ class snake_game:
             if self.auto == True:
                 key = self.get_auto_action(x1, y1, foodx, foody, blocked)
 
-            x1_change, y1_change = self.get_key_direction(key)
+            if key != None: x1_change, y1_change = self.get_key_direction(key)
             action = self.get_action_array(key)
             angle = self.get_angle(x1, y1, x1_change, y1_change, foodx, foody)
 
