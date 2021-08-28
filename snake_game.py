@@ -75,13 +75,17 @@ class snake_game:
 
     def plot_snake(self, snake_list):
         ''' Plot snake on the map '''
-        for x in snake_list:
-            pygame.draw.rect(self.display, WHITE, [x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
+        i = 0
+        logger.debug(snake_list)
+        for x in list(reversed(snake_list)):
+            if i % 2 == 0: pygame.draw.rect(self.display, GREEN, [x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
+            elif i % 2 == 1: pygame.draw.rect(self.display, WHITE, [x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
             logger.debug('SNAKE:{0} {1}'.format(x[0], x[1]))
+            i += 1
 
     def plot_food(self, foodx, foody):
         ''' Plot food on the map '''
-        pygame.draw.rect(self.display, GREEN, [foodx, foody, SNAKE_BLOCK, SNAKE_BLOCK])
+        pygame.draw.rect(self.display, RED, [foodx, foody, SNAKE_BLOCK, SNAKE_BLOCK])
         logger.debug('FOOD:{0} {1}'.format(foodx, foody))
 
     def generate_snake(self):
@@ -200,8 +204,10 @@ class snake_game:
         x1, y1 = self.generate_snake()
         x1_change, y1_change = 0, 0
         foodx, foody = self.generate_food()
-        snake_List = []
-        Length_of_snake = 1
+        i = random.randint(0, 1)
+        if i == 0: snake_List = [[x1 + 10, y1],[x1, y1]]
+        if i == 1: snake_List = [[x1, y1 + 10],[x1, y1]]
+        Length_of_snake = 2
         key = None
         action = None
         step = self.step
@@ -221,6 +227,8 @@ class snake_game:
                 pygame.display.update()
 
                 for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        return
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_q: # Quit game with Q
                             return
@@ -228,45 +236,47 @@ class snake_game:
                             self.gameLoop()
                             return
 
-            event = pygame.event.poll()
-            # Quit Button Event
-            if event.type == pygame.QUIT:
-                game_over = True
-            # Key Action Event
-            if self.auto != True:
-                key = self.get_key_action(event)
+            for event in pygame.event.get():
+                # Quit Button Event
+                if event.type == pygame.QUIT:
+                    game_over = True
+                # Key Action Event
+                if self.auto != True:
+                    key = self.get_key_action(event)
             if self.auto == True:
                 key = self.get_auto_action(x1, y1, foodx, foody, blocked)
 
-            if key != None: x1_change, y1_change = self.get_key_direction(key)
-            action = self.get_action_array(key)
-            angle = self.get_angle(x1, y1, x1_change, y1_change, foodx, foody)
+            if key != None:
+                x1_change, y1_change = self.get_key_direction(key)
+                action = self.get_action_array(key)
+                angle = self.get_angle(x1, y1, x1_change, y1_change, foodx, foody)
 
             self.display.fill(BLACK)
 
             # Update Snake
-            x1 += x1_change
-            y1 += y1_change
-            snake_Head = []
-            snake_Head.append(x1)
-            snake_Head.append(y1)
-            snake_List.append(snake_Head)
-            if len(snake_List) > Length_of_snake:
-                del snake_List[0]
+            if x1_change != 0 or y1_change != 0:
+                x1 += x1_change
+                y1 += y1_change
+                snake_Head = []
+                snake_Head.append(x1)
+                snake_Head.append(y1)
+                snake_List.append(snake_Head)
+                if len(snake_List) > Length_of_snake:
+                    del snake_List[0]
 
-            # End Flag: Snake goes outside of map
-            if x1 >= self.dis_width or x1 < 0 or y1 >= self.dis_height or y1 < 0:
-                game_close = True
-
-            # End Flag: Snake eats his body
-            for x in snake_List[:-1]:
-                if x == snake_Head:
+                # End Flag: Snake goes outside of map
+                if x1 >= self.dis_width or x1 < 0 or y1 >= self.dis_height or y1 < 0:
                     game_close = True
 
-            # Action Flag: Snake ate food
-            if x1 == foodx and y1 == foody:
-                foodx, foody = self.generate_food()  # Generate new food
-                Length_of_snake += 1
+                # End Flag: Snake eats his body
+                for x in snake_List[:-1]:
+                    if x == snake_Head:
+                        game_close = True
+
+                # Action Flag: Snake ate food
+                if x1 == foodx and y1 == foody:
+                    foodx, foody = self.generate_food()  # Generate new food
+                    Length_of_snake += 1
 
             self.plot_snake(snake_List)  # Plot Snake
             self.plot_food(foodx, foody)  # Plot Food
