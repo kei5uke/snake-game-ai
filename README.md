@@ -1,3 +1,4 @@
+![snake_game.gif](https://user-images.githubusercontent.com/33390452/131449452-61d92be1-34d1-4c52-bf82-d4d6d0f3f49a.gif)
 # snake-game-ai
 I created snake game and trained neural network to beat the game because why not :P 
 ## pygame
@@ -14,5 +15,6 @@ Soo I decide to give these features below for the neural network.
 - 0 - Snake survived but the direction was wrong
 - -1 - Snake died  
 ### Architecture
-Descent number of Relu in the hidden layer.
-Ouput layer is linear.
+Hidden layer : relu
+Output layer : linear
+loss : MS or MSLE
