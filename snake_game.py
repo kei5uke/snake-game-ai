@@ -13,7 +13,7 @@ GREEN = (0, 255, 0)
 BLUE = (50, 153, 213)
 
 SNAKE_BLOCK = 10
-SNAKE_SPEED = 1000
+SNAKE_SPEED = 30
 
 import logging
 logger = logging.getLogger(__name__)
