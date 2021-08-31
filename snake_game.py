@@ -3,11 +3,7 @@ import random
 import math
 import sys
 import numpy as np
-
-try:
-    from tensorflow import keras
-except ImportError:
-    pass
+from tensorflow.keras.models import load_model
 
 WHITE = (255, 255, 255)
 YELLOW = (255, 255, 102)
@@ -17,33 +13,43 @@ GREEN = (0, 255, 0)
 BLUE = (50, 153, 213)
 
 SNAKE_BLOCK = 10
-SNAKE_SPEED = 30
+SNAKE_SPEED = 1000
 
-from logging import basicConfig, getLogger, DEBUG
-logger = getLogger(__name__)
-logger.setLevel(DEBUG)
+import logging
+logger = logging.getLogger(__name__)
+
 
 class snake_game:
-    def __init__(self, width=600, height=400, mode = 'manual', loop=1, step=None, model_file=None):
-        self.mode = mode
-        self.manual = False
-        self.random = False
-        self.auto = False
+    def __init__(self, width=600, height=400):
+        self.score = 0
         self.dis_width = width
         self.dis_height = height
         self.display = pygame.display.set_mode((self.dis_width, self.dis_height))
-        self.score = 0
+        self.manual = False
+        self.random = False
+        self.auto = False
+        self.loop = None
+        self.step = None
         self.snake_observe = []
+        self.model = None
+
+    def setting(self, mode, loop = 1, step = None, model_file_name = None):
+        self.manual, self.random, self.auto = False, False, False
+        self.snake_observe = [] # Initialize
+        if mode == 'manual': self.manual = True
+        elif mode == 'random': self.random = True
+        elif mode == 'auto':
+            self.auto = True
+            self.model = load_model(model_file_name)
+        else: sys.exit('Select mode properly:' + mode)
         self.loop = loop
         self.step = step
-        self.model_file = model_file
-        self.model = None
 
     def start(self):
         '''Start snake game based on mode'''
-        if self.mode == 'manual': self.manual = True
-        if self.mode == 'random': self.random = True
-        if self.mode == 'auto': self.auto = True
+        if self.manual == False and self.auto == False and self.random == False:
+            sys.exit('Setting is missing')
+
         pygame.init()
         pygame.display.set_caption('Snake Game')
 
@@ -57,7 +63,6 @@ class snake_game:
                 self.gameLoop()
 
         elif self.auto:
-            self.model = keras.models.load_model(self.model_file)
             for i in range(0, self.loop):
                 logger.info('AUTO GAME {0}'.format(i + 1))
                 self.gameLoop()
@@ -65,23 +70,24 @@ class snake_game:
     def display_message(self, mode, text):
         ''' Display message '''
         if mode == 'msg':
-            font_style = pygame.font.SysFont("optima", 25)
+            font_style = pygame.font.SysFont("optima", 20)
             mesg = font_style.render(text, True, YELLOW)
-            self.display.blit(mesg, [self.dis_width / 3, self.dis_height / 3])
+            self.display.blit(mesg, [self.dis_width / 5, self.dis_height / 5])
         if mode == 'score':
-            score_font = pygame.font.SysFont("ornanong", 35)
-            value = score_font.render("Your Score: " + str(text), True, YELLOW)
-            self.display.blit(value, [self.dis_width / 3, 0])
+            score_font = pygame.font.SysFont("ornanong", 20)
+            value = score_font.render("Score: " + str(text), True, YELLOW)
+            self.display.blit(value, [self.dis_width / 2, 0])
 
     def plot_snake(self, snake_list):
         ''' Plot snake on the map '''
         i = 0
-        logger.debug(snake_list)
         for x in list(reversed(snake_list)):
-            if i % 2 == 0: pygame.draw.rect(self.display, GREEN, [x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
-            elif i % 2 == 1: pygame.draw.rect(self.display, WHITE, [x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
-            logger.debug('SNAKE:{0} {1}'.format(x[0], x[1]))
+            if i % 2 == 0:
+                pygame.draw.rect(self.display, GREEN, [x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
+            if i % 2 == 1:
+                pygame.draw.rect(self.display, WHITE, [x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
             i += 1
+            logger.debug('SNAKE:{0} {1}'.format(x[0], x[1]))
 
     def plot_food(self, foodx, foody):
         ''' Plot food on the map '''
@@ -176,9 +182,6 @@ class snake_game:
                 elif event.key == pygame.K_LEFT:
                     key = 3
 
-        elif self.random:
-            key = random.randint(0, 3)
-
         return key
 
     def get_auto_action(self, x1, y1, foodx, foody, blocked):
@@ -204,10 +207,9 @@ class snake_game:
         x1, y1 = self.generate_snake()
         x1_change, y1_change = 0, 0
         foodx, foody = self.generate_food()
-        i = random.randint(0, 1)
-        if i == 0: snake_List = [[x1 + 10, y1],[x1, y1]]
-        if i == 1: snake_List = [[x1, y1 + 10],[x1, y1]]
-        Length_of_snake = 2
+        snake_List = []
+        Length_of_snake = 1
+        #key =random.randint(0, 3)
         key = None
         action = None
         step = self.step
@@ -227,8 +229,6 @@ class snake_game:
                 pygame.display.update()
 
                 for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        return
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_q: # Quit game with Q
                             return
@@ -241,10 +241,12 @@ class snake_game:
                 if event.type == pygame.QUIT:
                     game_over = True
                 # Key Action Event
-                if self.auto != True:
+                if self.manual == True:
                     key = self.get_key_action(event)
             if self.auto == True:
                 key = self.get_auto_action(x1, y1, foodx, foody, blocked)
+            elif self.random == True:
+                key = random.randint(0, 3)
 
             if key != None:
                 x1_change, y1_change = self.get_key_direction(key)
@@ -254,29 +256,31 @@ class snake_game:
             self.display.fill(BLACK)
 
             # Update Snake
-            if x1_change != 0 or y1_change != 0:
-                x1 += x1_change
-                y1 += y1_change
-                snake_Head = []
-                snake_Head.append(x1)
-                snake_Head.append(y1)
-                snake_List.append(snake_Head)
-                if len(snake_List) > Length_of_snake:
-                    del snake_List[0]
+            x1 += x1_change
+            y1 += y1_change
+            snake_Head = []
+            snake_Head.append(x1)
+            snake_Head.append(y1)
+            snake_List.append(snake_Head)
+            if len(snake_List) > Length_of_snake:
+                del snake_List[0]
 
-                # End Flag: Snake goes outside of map
-                if x1 >= self.dis_width or x1 < 0 or y1 >= self.dis_height or y1 < 0:
+            # End Flag: Snake goes outside of map
+            if x1 >= self.dis_width or x1 < 0 or y1 >= self.dis_height or y1 < 0:
+                logger.info('DEAD: Went outside')
+                game_close = True
+
+            # End Flag: Snake eats his body
+            for x in snake_List[:-1]:
+                if x == snake_Head:
+                    logger.info('DEAD: Eats himself')
                     game_close = True
 
-                # End Flag: Snake eats his body
-                for x in snake_List[:-1]:
-                    if x == snake_Head:
-                        game_close = True
-
-                # Action Flag: Snake ate food
-                if x1 == foodx and y1 == foody:
-                    foodx, foody = self.generate_food()  # Generate new food
-                    Length_of_snake += 1
+            # Action Flag: Snake ate food
+            if x1 == foodx and y1 == foody:
+                logger.info('Score: Ate food')
+                foodx, foody = self.generate_food()  # Generate new food
+                Length_of_snake += 1
 
             self.plot_snake(snake_List)  # Plot Snake
             self.plot_food(foodx, foody)  # Plot Food
@@ -305,17 +309,22 @@ class snake_game:
 
                 if step != None:
                     step -= 1
+                    logger.debug(f'STEP:{step}')
 
             clock.tick(SNAKE_SPEED)
             pygame.display.update()
 
 
 if __name__ == "__main__":
-    basicConfig(
+    logging.basicConfig(
         format='[%(asctime)s] %(name)s %(levelname)s: %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
+    module_levels = {__name__: logging.DEBUG}
+    for module, level in module_levels.items():
+        logging.getLogger(module).setLevel(level=level)
 
-    game = snake_game(mode='manual')
+    game = snake_game()
+    game.setting(mode = 'manual')
     game.start()
     logger.debug('GAME SCORE: {}'.format(game.score))
