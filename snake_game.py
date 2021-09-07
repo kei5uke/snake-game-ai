@@ -126,9 +126,9 @@ class snake_game:
         angle = math.atan2(snake_dir[0] * food_dir[1] - snake_dir[1] * food_dir[0], snake_dir[0] * food_dir[0] + snake_dir[1] * food_dir[1])
         return angle/math.pi
 
-    def get_distance_of(self, x1, y1, foodx, foody):
+    def get_distance_of(self, x1, y1, x2, y2):
         ''' Get distance between snake and food '''
-        return np.linalg.norm(np.array([(foodx - x1), (foody - y1)]))
+        return np.linalg.norm(np.array([(x2 - x1), (y2 - y1)]))
 
     def is_direction_blocked(self, x, y, snake_List):
         ''' Find blocked direction based on current location '''
@@ -196,7 +196,15 @@ class snake_game:
             action = self.get_action_array(i)
             x1_change, y1_change = self.get_key_direction(i)
             angle = self.get_angle(x1, y1, x1_change, y1_change, foodx, foody)
-            prediction.append(self.model.predict(np.hstack((blocked, action, angle)).ravel().reshape(-1, 9)))
+            X = x1 + x1_change
+            Y = y1 + y1_change
+            wall_distance = np.array([self.get_distance_of(X, Y, -10, Y)/610,
+                                     self.get_distance_of(X, Y, 600, Y)/610,
+                                     self.get_distance_of(X, Y, X, -10)/410,
+                                     self.get_distance_of(X, Y, X, 400)/410])
+            food_distance = self.get_distance_of(X, Y, foodx, foody) / max
+
+            prediction.append(self.model.predict(np.hstack((blocked, action, angle, food_distance, wall_distance)).ravel().reshape(-1, 14)))
         key = np.argmax(prediction)
         logger.debug('PREDICTION: {0}'.format(prediction))
         logger.debug('KEY: {0}'.format(key))
@@ -225,16 +233,19 @@ class snake_game:
 
         blocked = self.is_direction_blocked(x1, y1, [[x1, y1]])
         distance = self.get_distance_of(x1, y1, foodx, foody)
+        #max = math.sqrt(pow(self.dis_width, 2) + pow(self.dis_height, 2))
+        max = self.get_distance_of(0, 0, 610, 410)
 
         while not game_over:
             if step == 0: return
             while game_close:
                 if self.random or self.auto: return
                 # Game Close Menu
+                self.score = Length_of_snake - SNAKE_LENGTH
                 self.display.fill(BLACK)
                 self.display_message('msg', "DEAD! Press C:Play Again / Q:Quit")
-                self.display_message('score', Length_of_snake - 1)
-                self.score = Length_of_snake - SNAKE_LENGTH
+                self.display_message('score', self.score)
+
                 pygame.display.update()
 
                 for event in pygame.event.get():
@@ -299,17 +310,31 @@ class snake_game:
             if x1_change != 0 or y1_change != 0:
                 new_distance = self.get_distance_of(x1, y1, foodx, foody)
 
+                if self.score < Length_of_snake - SNAKE_LENGTH:
+                    food_distance = 0
+                else:
+                    food_distance = new_distance / max
+                wall_distance = np.array([self.get_distance_of(x1, y1, -10, y1)/610,
+                                         self.get_distance_of(x1, y1, 600, y1)/610,
+                                         self.get_distance_of(x1, y1, x1, -10)/410,
+                                         self.get_distance_of(x1, y1, x1, 400)/410])
+                data = np.hstack((blocked, action, angle, food_distance, wall_distance)).ravel()
                 if game_close:
-                    self.snake_observe.append([np.hstack((blocked, action, angle)).ravel(), -1])
-                    logger.debug('BLOCKED:{0} ACTION:{1} DEGREE:{2} LABEL:{3}'.format(blocked, action, math.degrees(angle*math.pi), -1))
+                    self.snake_observe.append([data, -1])
+                    logger.debug('LABEL:-1')
                 elif not game_close:
                     # Comparison of current location and previous location
                     if distance <= new_distance:
-                        self.snake_observe.append([np.hstack((blocked, action, angle)).ravel(), 0])
-                        logger.debug('BLOCKED:{0} ACTION:{1} DEGREE:{2} LABEL:{3}'.format(blocked, action, math.degrees(angle*math.pi), 0))
-                    if distance > new_distance or self.score < Length_of_snake-SNAKE_LENGTH :
-                        self.snake_observe.append([np.hstack((blocked, action, angle)).ravel(), 1])
-                        logger.debug('BLOCKED:{0} ACTION:{1} DEGREE:{2} LABEL:{3}'.format(blocked, action, math.degrees(angle*math.pi), 1))
+                        self.snake_observe.append([data, 0])
+                        logger.debug('LABEL:0')
+                    if distance > new_distance or self.score < Length_of_snake - SNAKE_LENGTH:
+                        self.snake_observe.append([data, 1])
+                        logger.debug('LABEL:1')
+                logger.debug(f'BLOCKED:{blocked} ACTION:{action}')
+                logger.debug(f'DEGREE:{math.degrees(angle*math.pi)}')
+                logger.debug(f'WALL:{wall_distance}')
+                logger.debug(f'FOOD:{food_distance}')
+
 
                 # Update blocked direction, distance and score
                 blocked = self.is_direction_blocked(x1, y1, snake_List)
@@ -337,7 +362,7 @@ if __name__ == "__main__":
     game.setting(mode = 'manual')
     game.start()
     logger.debug('GAME SCORE: {}'.format(game.score))
-
-    game.setting(mode = 'random', loop = 1, step = 10)
-    game.start()
-    logger.debug('GAME SCORE: {}'.format(game.score))
+    #logger.debug(f'{game.snake_observe}')
+    # game.setting(mode = 'random', loop = 1, step = 10)
+    # game.start()
+    # logger.debug('GAME SCORE: {}'.format(game.score))
