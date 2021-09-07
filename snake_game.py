@@ -14,6 +14,7 @@ BLUE = (50, 153, 213)
 
 SNAKE_BLOCK = 10
 SNAKE_SPEED = 30
+SNAKE_LENGTH = 3
 
 import logging
 logger = logging.getLogger(__name__)
@@ -70,13 +71,15 @@ class snake_game:
     def display_message(self, mode, text):
         ''' Display message '''
         if mode == 'msg':
-            font_style = pygame.font.SysFont("optima", 20)
+            font_style = pygame.font.SysFont("optima", 30)
             mesg = font_style.render(text, True, YELLOW)
-            self.display.blit(mesg, [self.dis_width / 5, self.dis_height / 5])
+            self.display.blit(mesg, [0, 30])
+            #self.dis_width / 2.5, self.dis_height / 2.5
         if mode == 'score':
-            score_font = pygame.font.SysFont("ornanong", 20)
+            score_font = pygame.font.SysFont("ornanong", 30)
             value = score_font.render("Score: " + str(text), True, YELLOW)
-            self.display.blit(value, [self.dis_width / 2, 0])
+            self.display.blit(value, [0, 0])
+            #self.dis_width / 2.5, 0
 
     def plot_snake(self, snake_list):
         ''' Plot snake on the map '''
@@ -207,8 +210,14 @@ class snake_game:
         x1, y1 = self.generate_snake()
         x1_change, y1_change = 0, 0
         foodx, foody = self.generate_food()
-        snake_List = []
-        Length_of_snake = 1
+
+        snake_Head = [x1, y1]
+        if random.randint(0, 1) == 0:
+            snake_List = [[x1 - 20, y1], [x1 - 10, y1], [x1, y1]]
+        else:
+            snake_List = [[x1, y1 - 20], [x1, y1 - 10], [x1, y1]]
+
+        Length_of_snake = SNAKE_LENGTH
         #key =random.randint(0, 3)
         key = None
         action = None
@@ -225,7 +234,7 @@ class snake_game:
                 self.display.fill(BLACK)
                 self.display_message('msg', "DEAD! Press C:Play Again / Q:Quit")
                 self.display_message('score', Length_of_snake - 1)
-                self.score = Length_of_snake - 1
+                self.score = Length_of_snake - SNAKE_LENGTH
                 pygame.display.update()
 
                 for event in pygame.event.get():
@@ -253,17 +262,16 @@ class snake_game:
                 action = self.get_action_array(key)
                 angle = self.get_angle(x1, y1, x1_change, y1_change, foodx, foody)
 
-            self.display.fill(BLACK)
-
             # Update Snake
-            x1 += x1_change
-            y1 += y1_change
-            snake_Head = []
-            snake_Head.append(x1)
-            snake_Head.append(y1)
-            snake_List.append(snake_Head)
-            if len(snake_List) > Length_of_snake:
-                del snake_List[0]
+            if x1_change != 0 or y1_change != 0:
+                x1 += x1_change
+                y1 += y1_change
+                snake_Head = []
+                snake_Head.append(x1)
+                snake_Head.append(y1)
+                snake_List.append(snake_Head)
+                if len(snake_List) > Length_of_snake:
+                    del snake_List[0]
 
             # End Flag: Snake goes outside of map
             if x1 >= self.dis_width or x1 < 0 or y1 >= self.dis_height or y1 < 0:
@@ -282,11 +290,12 @@ class snake_game:
                 foodx, foody = self.generate_food()  # Generate new food
                 Length_of_snake += 1
 
+            self.display.fill(BLACK)
             self.plot_snake(snake_List)  # Plot Snake
             self.plot_food(foodx, foody)  # Plot Food
-            self.display_message('score', Length_of_snake - 1)
+            self.display_message('score', Length_of_snake - SNAKE_LENGTH)
 
-            # When snake move
+            # Collect data when snake moves
             if x1_change != 0 or y1_change != 0:
                 new_distance = self.get_distance_of(x1, y1, foodx, foody)
 
@@ -298,14 +307,14 @@ class snake_game:
                     if distance <= new_distance:
                         self.snake_observe.append([np.hstack((blocked, action, angle)).ravel(), 0])
                         logger.debug('BLOCKED:{0} ACTION:{1} DEGREE:{2} LABEL:{3}'.format(blocked, action, math.degrees(angle*math.pi), 0))
-                    if distance > new_distance or self.score < Length_of_snake-1 :
+                    if distance > new_distance or self.score < Length_of_snake-SNAKE_LENGTH :
                         self.snake_observe.append([np.hstack((blocked, action, angle)).ravel(), 1])
                         logger.debug('BLOCKED:{0} ACTION:{1} DEGREE:{2} LABEL:{3}'.format(blocked, action, math.degrees(angle*math.pi), 1))
 
                 # Update blocked direction, distance and score
                 blocked = self.is_direction_blocked(x1, y1, snake_List)
                 distance = new_distance
-                self.score = Length_of_snake - 1
+                self.score = Length_of_snake - SNAKE_LENGTH
 
                 if step != None:
                     step -= 1
@@ -326,5 +335,9 @@ if __name__ == "__main__":
 
     game = snake_game()
     game.setting(mode = 'manual')
+    game.start()
+    logger.debug('GAME SCORE: {}'.format(game.score))
+
+    game.setting(mode = 'random', loop = 1, step = 10)
     game.start()
     logger.debug('GAME SCORE: {}'.format(game.score))
