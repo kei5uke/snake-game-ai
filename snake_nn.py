@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 DIM = 14
 
+
 class snake_nn:
     def __init__(self):
         self.history = None
@@ -39,32 +40,33 @@ class snake_nn:
         model.add(Dense(1, activation='linear'))
         sgd = optimizers.Adam(lr=0.01)
         model.compile(loss='mean_squared_error',
-                  optimizer=sgd,
-                  metrics=['acc'])
+                      optimizer=sgd,
+                      metrics=['acc'])
         logger.debug(model.summary())
         return model
 
     def train_model(self, model, filename, X, y):
         ''' Train model '''
         self.history = model.fit(X,
-                  y,
-                  epochs = 4,
-                  shuffle=True)
+                                 y,
+                                 epochs=4,
+                                 shuffle=True)
         model.save(filename)
+
 
 if __name__ == "__main__":
     logging.basicConfig(
         format='[%(asctime)s] %(name)s %(levelname)s: %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
-    module_levels = {'snake_game':logging.INFO,__name__: logging.DEBUG}
+    module_levels = {'snake_game': logging.INFO, __name__: logging.DEBUG}
     for module, level in module_levels.items():
         logging.getLogger(module).setLevel(level=level)
 
     game = snake_game()
-    game.setting(mode = 'random', loop = 1000, step = 100)
+    game.setting(mode='random', loop=1000, step=100)
     game.start()
 
     data = game.snake_observe
     nn = snake_nn()
-    nn.train(data = data, model_file_name = 'test.h5')
+    nn.train(data=data, model_file_name='test.h5')

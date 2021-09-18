@@ -1,3 +1,4 @@
+import logging
 import pygame
 import random
 import math
@@ -16,7 +17,6 @@ SNAKE_BLOCK = 10
 SNAKE_SPEED = 30
 SNAKE_LENGTH = 3
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -25,7 +25,8 @@ class snake_game:
         self.score = 0
         self.dis_width = width
         self.dis_height = height
-        self.display = pygame.display.set_mode((self.dis_width, self.dis_height))
+        self.display = pygame.display.set_mode(
+            (self.dis_width, self.dis_height))
         self.manual = False
         self.random = False
         self.auto = False
@@ -35,15 +36,18 @@ class snake_game:
         self.model = None
         self.max = None
 
-    def setting(self, mode, loop = 1, step = None, model_file_name = None):
+    def setting(self, mode, loop=1, step=None, model_file_name=None):
         self.manual, self.random, self.auto = False, False, False
-        self.snake_observe = [] # Initialize
-        if mode == 'manual': self.manual = True
-        elif mode == 'random': self.random = True
+        self.snake_observe = []  # Initialize
+        if mode == 'manual':
+            self.manual = True
+        elif mode == 'random':
+            self.random = True
         elif mode == 'auto':
             self.auto = True
             self.model = load_model(model_file_name)
-        else: sys.exit('Select mode properly:' + mode)
+        else:
+            sys.exit('Select mode properly:' + mode)
         self.loop = loop
         self.step = step
 
@@ -85,25 +89,32 @@ class snake_game:
         i = 0
         for x in list(reversed(snake_list)):
             if i % 2 == 0:
-                pygame.draw.rect(self.display, GREEN, [x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
+                pygame.draw.rect(self.display, GREEN, [
+                                 x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
             if i % 2 == 1:
-                pygame.draw.rect(self.display, WHITE, [x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
+                pygame.draw.rect(self.display, WHITE, [
+                                 x[0], x[1], SNAKE_BLOCK, SNAKE_BLOCK])
             i += 1
 
     def plot_food(self, foodx, foody):
         ''' Plot food on the map '''
-        pygame.draw.rect(self.display, RED, [foodx, foody, SNAKE_BLOCK, SNAKE_BLOCK])
+        pygame.draw.rect(self.display, RED, [
+                         foodx, foody, SNAKE_BLOCK, SNAKE_BLOCK])
 
     def generate_snake(self):
         ''' Generate coordinate of snake '''
-        x = round(random.randrange(0, self.dis_width - SNAKE_BLOCK) / 10.0) * 10.0
-        y = round(random.randrange(0, self.dis_height - SNAKE_BLOCK) / 10.0) * 10.0
+        x = round(random.randrange(
+            0, self.dis_width - SNAKE_BLOCK) / 10.0) * 10.0
+        y = round(random.randrange(
+            0, self.dis_height - SNAKE_BLOCK) / 10.0) * 10.0
         return x, y
 
     def generate_food(self):
         ''' Generate coordinate of food '''
-        foodx = round(random.randrange(0, self.dis_width - SNAKE_BLOCK) / 10.0) * 10.0
-        foody = round(random.randrange(0, self.dis_height - SNAKE_BLOCK) / 10.0) * 10.0
+        foodx = round(random.randrange(
+            0, self.dis_width - SNAKE_BLOCK) / 10.0) * 10.0
+        foody = round(random.randrange(
+            0, self.dis_height - SNAKE_BLOCK) / 10.0) * 10.0
         return foodx, foody
 
     def get_action_array(self, key):
@@ -120,7 +131,8 @@ class snake_game:
         ''' Get andle of the direction of snake and food '''
         snake_dir = self.normalize_vector([x1_change, y1_change])
         food_dir = self.normalize_vector([(foodx - x1), (foody - y1)])
-        angle = math.atan2(snake_dir[0] * food_dir[1] - snake_dir[1] * food_dir[0], snake_dir[0] * food_dir[0] + snake_dir[1] * food_dir[1])
+        angle = math.atan2(snake_dir[0] * food_dir[1] - snake_dir[1] * food_dir[0],
+                           snake_dir[0] * food_dir[0] + snake_dir[1] * food_dir[1])
         return angle/math.pi
 
     def get_distance_of(self, x1, y1, x2, y2):
@@ -185,10 +197,11 @@ class snake_game:
 
     def get_wall_distance(self, x1, y1):
         return np.array([self.get_distance_of(x1, y1, -SNAKE_BLOCK, y1)/self.dis_width+SNAKE_BLOCK,
-                                 self.get_distance_of(x1, y1, self.dis_width, y1)/self.dis_width+SNAKE_BLOCK,
-                                 self.get_distance_of(x1, y1, x1, -SNAKE_BLOCK)/self.dis_height+SNAKE_BLOCK,
-                                 self.get_distance_of(x1, y1, x1, self.dis_height)/self.dis_height+SNAKE_BLOCK])
-
+                         self.get_distance_of(
+                             x1, y1, self.dis_width, y1)/self.dis_width+SNAKE_BLOCK,
+                         self.get_distance_of(
+                             x1, y1, x1, -SNAKE_BLOCK)/self.dis_height+SNAKE_BLOCK,
+                         self.get_distance_of(x1, y1, x1, self.dis_height)/self.dis_height+SNAKE_BLOCK])
 
     def get_auto_action(self, snake_List, foodx, foody, blocked):
         ''' Get predection based on given parameters
@@ -201,12 +214,15 @@ class snake_game:
             action = self.get_action_array(i)
             x1_change, y1_change = self.get_key_direction(i)
             if (snake_List[-2][0] - snake_List[-1][0]) != x1_change or (snake_List[-2][1] - snake_List[-1][1]) != y1_change:
-                angle = self.get_angle(x1, y1, x1_change, y1_change, foodx, foody)
+                angle = self.get_angle(
+                    x1, y1, x1_change, y1_change, foodx, foody)
                 X = x1 + x1_change
                 Y = y1 + y1_change
                 wall_distance = self.get_wall_distance(X, Y)
-                food_distance = self.get_distance_of(X, Y, foodx, foody) / self.max
-                prediction.append(self.model.predict(np.hstack((blocked, action, angle, food_distance, wall_distance)).ravel().reshape(-1, 14)))
+                food_distance = self.get_distance_of(
+                    X, Y, foodx, foody) / self.max
+                prediction.append(self.model.predict(np.hstack(
+                    (blocked, action, angle, food_distance, wall_distance)).ravel().reshape(-1, 14)))
                 index.append(i)
         key = index[np.argmax(prediction)]
 
@@ -227,30 +243,34 @@ class snake_game:
             snake_List = [[x1, y1 - 20], [x1, y1 - 10], [x1, y1]]
 
         Length_of_snake = SNAKE_LENGTH
-        key =random.randint(0, 3)
+        key = random.randint(0, 3)
         action = None
         step = self.step
         blocked = self.is_direction_blocked(x1, y1, [[x1, y1]])
         distance = self.get_distance_of(x1, y1, foodx, foody)
-        self.max = self.get_distance_of(0, 0, self.dis_width+SNAKE_BLOCK, self.dis_height+SNAKE_BLOCK)
+        self.max = self.get_distance_of(
+            0, 0, self.dis_width+SNAKE_BLOCK, self.dis_height+SNAKE_BLOCK)
 
         while not game_over:
-            if step == 0: return
+            if step == 0:
+                return
             while game_close:
-                if self.random or self.auto: return
+                if self.random or self.auto:
+                    return
                 # Game Close Menu
                 self.score = Length_of_snake - SNAKE_LENGTH
                 self.display.fill(BLACK)
-                self.display_message('msg', "DEAD! Press C:Play Again / Q:Quit")
+                self.display_message(
+                    'msg', "DEAD! Press C:Play Again / Q:Quit")
                 self.display_message('score', self.score)
 
                 pygame.display.update()
 
                 for event in pygame.event.get():
                     if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_q: # Quit game with Q
+                        if event.key == pygame.K_q:  # Quit game with Q
                             return
-                        elif event.key == pygame.K_c: # Continue with C
+                        elif event.key == pygame.K_c:  # Continue with C
                             self.gameLoop()
                             return
 
@@ -273,7 +293,8 @@ class snake_game:
                     x1_change = new_x1_change
                     y1_change = new_y1_change
                     action = self.get_action_array(key)
-                    angle = self.get_angle(x1, y1, x1_change, y1_change, foodx, foody)
+                    angle = self.get_angle(
+                        x1, y1, x1_change, y1_change, foodx, foody)
 
             # Update Snake
             if x1_change != 0 or y1_change != 0:
@@ -317,7 +338,8 @@ class snake_game:
                 else:
                     food_distance = new_distance / self.max
                 wall_distance = self.get_wall_distance(x1, y1)
-                data = np.hstack((blocked, action, angle, food_distance, wall_distance)).ravel()
+                data = np.hstack(
+                    (blocked, action, angle, food_distance, wall_distance)).ravel()
                 if game_close:
                     self.snake_observe.append([data, -1])
                     logger.debug('LABEL:-1')
@@ -333,7 +355,6 @@ class snake_game:
                 logger.debug(f'DEGREE:{math.degrees(angle*math.pi)}')
                 logger.debug(f'WALL:{wall_distance}')
                 logger.debug(f'FOOD:{food_distance}')
-
 
                 # Update blocked direction, distance and score
                 blocked = self.is_direction_blocked(x1, y1, snake_List)
@@ -358,7 +379,7 @@ if __name__ == "__main__":
         logging.getLogger(module).setLevel(level=level)
 
     game = snake_game()
-    game.setting(mode = 'manual')
+    game.setting(mode='manual')
     game.start()
-    game.setting(mode = 'random', loop = 1, step = 10)
+    game.setting(mode='random', loop=1, step=10)
     game.start()
