@@ -1,4 +1,3 @@
-![snake_game.gif](https://user-images.githubusercontent.com/33390452/131449452-61d92be1-34d1-4c52-bf82-d4d6d0f3f49a.gif)
 # snake-game-ai
 I created snake game and trained neural network to beat the game because why not :P 
 ## Base Game (Pygame)
@@ -21,13 +20,6 @@ Output (label) will be collected after the snake moves 1 step every time.
 #### Output
 - 1 - Snake survived and moved to the right direction (direction to the food)
 - 0 - Snake survived but the direction was wrong
-<<<<<<< HEAD
-- -1 - Snake died  
-### Architecture
-Hidden layer : relu
-Output layer : linear
-loss : MS or MSLE
-=======
 - -1 - Snake died   
 
 ### NN Architecture
@@ -58,4 +50,3 @@ Above gen 600k decrease avg score so probably they are overfitting and need some
 #### Gen 800000  
 ![800k](https://user-images.githubusercontent.com/33390452/133888065-b1436262-67e7-46e7-9714-8a75d155cd67.gif)  
 Seems like the movement of snakes appears to be gradually becoming more linear.
->>>>>>> test-new-parameter
