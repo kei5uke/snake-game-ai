@@ -1,5 +1,5 @@
 # snake-game-ai
-I created snake game and trained neural network to beat the game because why not :P 
+I created snake game and trained neural network to beat the game because why not.
 ## Base Game (Pygame)
 I used the Pygame library for creating the base snake game.  
 Snake at the start and apple(food) at each moment will be placed on the map randomly. 
@@ -49,4 +49,5 @@ Above gen 600k decrease avg score so probably they are overfitting and need some
 ![600k](https://user-images.githubusercontent.com/33390452/133888067-947e5c6e-225a-4c98-88a0-924e1492d4b7.gif)  
 #### Gen 800000  
 ![800k](https://user-images.githubusercontent.com/33390452/133888065-b1436262-67e7-46e7-9714-8a75d155cd67.gif)  
-Seems like the movement of snakes appears to be gradually becoming more linear.
+Movement of snakes appears to be gradually becoming more linear.
+
